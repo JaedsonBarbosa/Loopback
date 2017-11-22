@@ -56,13 +56,12 @@ namespace Loopback
         {
             if (isDirty)
             {
-                MessageBoxResult resp=System.Windows.MessageBox.Show("You have not saved your changes. Are you sure you want to exit ?","Loopback Manager", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                MessageBoxResult resp= MessageBox.Show("You have not saved your changes. Are you sure you want to exit ?","Loopback Manager", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (resp==MessageBoxResult.No)
                 {
                     e.Cancel = true;
                     return;
                 }
-
             }
             //To Do
             _loop.FreeResources();
@@ -72,7 +71,6 @@ namespace Loopback
         {
             Filter(txtFilter.Text, (bool)cbLoopback.IsChecked);
         }
-
 
         private void cbLoopback_Click(object sender, RoutedEventArgs e)
         {
@@ -86,7 +84,7 @@ namespace Loopback
 
             foreach (LoopUtil.AppContainer app in _loop.Apps)
             {
-                string left = app.displayName.ToUpper();
+                string left = app.DisplayName.ToUpper();
 
                 if (filter == String.Empty || left.Contains(right))
                 {
@@ -104,9 +102,9 @@ namespace Loopback
             isDirty=true;
         }
 
-        private void Log(String logtxt) 
+        private void Log(String logtxt)
         {
-                txtStatus.Text = DateTime.Now.ToString("hh:mm:ss.fff ") + logtxt;
+            txtStatus.Text = DateTime.Now.ToString("hh:mm:ss.fff ") + logtxt;
         }
     }
 }

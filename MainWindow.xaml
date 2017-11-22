@@ -57,7 +57,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="App Name"
-                                    Binding="{Binding Path=displayName}" />
+                                    Binding="{Binding Path=DisplayName}" />
             </DataGrid.Columns>
         </DataGrid>
         <StatusBar x:Name="SBar"
