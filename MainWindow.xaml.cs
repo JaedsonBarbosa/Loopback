@@ -1,18 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Loopback
 {
@@ -34,8 +25,6 @@ namespace Loopback
             ICollectionView cvApps = CollectionViewSource.GetDefaultView(dgLoopback.ItemsSource);
 
         }
-
-
         private void btnSave_Click(object sender, RoutedEventArgs e)
         {
             if (!isDirty) 
@@ -119,6 +108,5 @@ namespace Loopback
         {
                 txtStatus.Text = DateTime.Now.ToString("hh:mm:ss.fff ") + logtxt;
         }
-
     }
 }

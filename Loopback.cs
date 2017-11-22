@@ -12,28 +12,28 @@ namespace Loopback
     public class LoopUtil
     {
         //http://msdn.microsoft.com/en-us/library/windows/desktop/aa379595(v=vs.85).aspx
-        [StructLayoutAttribute(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct SID_AND_ATTRIBUTES
         {
             public IntPtr Sid;
             public uint Attributes;
         }
 
-        [StructLayoutAttribute(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct INET_FIREWALL_AC_CAPABILITIES
         {
             public uint count;
             public IntPtr capabilities; //SID_AND_ATTRIBUTES
         }
 
-        [StructLayoutAttribute(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct INET_FIREWALL_AC_BINARIES
         {
             public uint count;
             public IntPtr binaries;
         }
 
-        [StructLayoutAttribute(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct INET_FIREWALL_APP_CONTAINER
         {
             internal IntPtr appContainerSid;
@@ -51,7 +51,6 @@ namespace Loopback
             [MarshalAs(UnmanagedType.LPWStr)]
             public string packageFullName;
         }
-
  
         // Call this API to free the memory returned by the Enumeration API 
         [DllImport("FirewallAPI.dll")] 
@@ -109,17 +108,16 @@ namespace Loopback
 
             public AppContainer(String _appContainerName, String _displayName, String _workingDirectory, IntPtr _sid)
             {
-                this.appContainerName = _appContainerName;
-                this.displayName = _displayName;
-                this.workingDirectory = _workingDirectory;
-                String tempSid;
-                ConvertSidToStringSid(_sid, out tempSid);
-                this.StringSid = tempSid;
+                appContainerName = _appContainerName;
+                displayName = _displayName;
+                workingDirectory = _workingDirectory;
+                ConvertSidToStringSid(_sid, out string tempSid);
+                StringSid = tempSid;
             }
         }
 
-        internal List<LoopUtil.INET_FIREWALL_APP_CONTAINER> _AppList;
-        internal List<LoopUtil.SID_AND_ATTRIBUTES> _AppListConfig;
+        internal List<INET_FIREWALL_APP_CONTAINER> _AppList;
+        internal List<SID_AND_ATTRIBUTES> _AppListConfig;
         public List<AppContainer> Apps=new List<AppContainer>();
         internal IntPtr _pACs;
 
@@ -184,7 +182,6 @@ namespace Loopback
             }
 
             return mycap;
-
         }
 
         private static List<SID_AND_ATTRIBUTES> getContainerSID(INET_FIREWALL_AC_CAPABILITIES cap)
@@ -207,7 +204,6 @@ namespace Loopback
 
         private static List<SID_AND_ATTRIBUTES> PI_NetworkIsolationGetAppContainerConfig()
         {
-
             IntPtr arrayValue = IntPtr.Zero;
             uint size = 0;
             var list = new List<SID_AND_ATTRIBUTES>();
@@ -231,13 +227,10 @@ namespace Loopback
             handle_ppACs.Free();
 
             return list;
-
-
         }
 
         private List<INET_FIREWALL_APP_CONTAINER> PI_NetworkIsolationEnumAppContainers()
         {
-           
             IntPtr arrayValue = IntPtr.Zero;
             uint size = 0;
             var list = new List<INET_FIREWALL_APP_CONTAINER>();
@@ -264,8 +257,6 @@ namespace Loopback
             handle_ppACs.Free();
 
             return list;
-
-
         }
 
         public bool SaveLoopbackState()
@@ -295,7 +286,6 @@ namespace Loopback
             }
             else
             { return false; }
-            
         }
 
         private int CountEnabledLoopUtil()
@@ -316,6 +306,5 @@ namespace Loopback
         {
             NetworkIsolationFreeAppContainers(_pACs);
         }
-
     }
 }
