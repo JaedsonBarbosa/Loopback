@@ -15,20 +15,6 @@ namespace Loopback
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        internal struct INET_FIREWALL_AC_CAPABILITIES
-        {
-            public uint count;
-            public IntPtr capabilities; //SID_AND_ATTRIBUTES
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct INET_FIREWALL_AC_BINARIES
-        {
-            public uint count;
-            public IntPtr binaries;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
         internal struct INET_FIREWALL_APP_CONTAINER
         {
             internal IntPtr appContainerSid;
@@ -39,12 +25,24 @@ namespace Loopback
             public string displayName;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string description;
-            internal INET_FIREWALL_AC_CAPABILITIES capabilities;
-            internal INET_FIREWALL_AC_BINARIES binaries;
+            public INET_FIREWALL_AC_CAPABILITIES capabilities;
+            public INET_FIREWALL_AC_BINARIES binaries;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string workingDirectory;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string packageFullName;
+
+            public struct INET_FIREWALL_AC_CAPABILITIES
+            {
+                public uint count;
+                public IntPtr capabilities;
+            }
+
+            public struct INET_FIREWALL_AC_BINARIES
+            {
+                public uint count;
+                public IntPtr binaries;
+            }
         }
 
         // Call this API to load the current list of LoopUtil-enabled AppContainers
@@ -68,28 +66,22 @@ namespace Loopback
 
         public class AppContainer
         {
+            IntPtr Prt { get; set; }
             public String DisplayName { get; set; }
             public String StringSid { get; set; }
             public bool LoopUtil { get; set; }
 
-            internal AppContainer(INET_FIREWALL_APP_CONTAINER PI_app, List<SID_AND_ATTRIBUTES> _AppListEnabled)
+            internal AppContainer(string displayName, IntPtr sid, IEnumerable<string> sids)
             {
-                DisplayName = PI_app.displayName;
-                ConvertSidToStringSid(PI_app.appContainerSid, out string tempSid);
+                DisplayName = displayName;
+                ConvertSidToStringSid(sid, out string tempSid);
                 StringSid = tempSid;
 
-                ConvertSidToStringSid(PI_app.appContainerSid, out string right);
-                LoopUtil = _AppListEnabled.Count(x => Convert(x) == right) > 0;
-
-                string Convert(SID_AND_ATTRIBUTES sid)
-                {
-                    ConvertSidToStringSid(sid.Sid, out string left);
-                    return left;
-                }
+                ConvertSidToStringSid(sid, out string right);
+                LoopUtil = sids.Contains(right);
             }
         }
 
-        internal List<INET_FIREWALL_APP_CONTAINER> AppListFull;
         public List<AppContainer> Apps = new List<AppContainer>();
 
         public LoopUtil()
@@ -101,28 +93,23 @@ namespace Loopback
         {
             Apps.Clear();
 
-            IntPtr arrayValue = IntPtr.Zero;
-            NetworkIsolationEnumAppContainers(0x2, out uint size, out arrayValue);
-            AppListFull = Base<INET_FIREWALL_APP_CONTAINER>(size, arrayValue);
+            NetworkIsolationEnumAppContainers(0x2, out uint size, out IntPtr arrayValue);
+            var fullList = Base<INET_FIREWALL_APP_CONTAINER>(size, arrayValue);
 
-            arrayValue = IntPtr.Zero;
             NetworkIsolationGetAppContainerConfig(out size, out arrayValue);
-            var appListEnabled = Base<SID_AND_ATTRIBUTES>(size, arrayValue);
+            var sids = Base<SID_AND_ATTRIBUTES>(size, arrayValue)
+                .Select(x => { ConvertSidToStringSid(x.Sid, out string left); return left; });
 
-            Apps.AddRange(AppListFull.Select(PI_app => new AppContainer(PI_app, appListEnabled)));
+            Apps.AddRange(fullList.Select(PI_app => new AppContainer(PI_app.displayName, PI_app.appContainerSid, sids)));
         }
 
-        List<T> Base<T>(uint size, IntPtr arrayValue)
+        IEnumerable<T> Base<T>(uint size, IntPtr arrayValue)
         {
-            var list = new List<T>();
             var structSize = Marshal.SizeOf(typeof(T));
-            for (var i = 0; i < size; i++)
+            for (var i = 0; i < size; i++, arrayValue += structSize)
             {
-                var cur = (T)Marshal.PtrToStructure(arrayValue, typeof(T));
-                list.Add(cur);
-                arrayValue = new IntPtr((long)(arrayValue) + structSize);
+                yield return Marshal.PtrToStructure<T>(arrayValue);
             }
-            return list;
         }
 
         public bool SaveLoopbackState()
