@@ -53,10 +53,6 @@ namespace Loopback
         [DllImport("FirewallAPI.dll")]
         private static extern uint NetworkIsolationSetAppContainerConfig(uint pdwCntACs, SID_AND_ATTRIBUTES[] appContainerSids);
 
-        // Use this API to convert a string SID into an actual SID 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        internal static extern bool ConvertStringSidToSid(string strSid, out IntPtr pSid);
-
         [DllImport("advapi32", CharSet = CharSet.Auto, SetLastError = true)]
         static extern bool ConvertSidToStringSid(IntPtr pSid, out string strSid);
 
@@ -66,18 +62,16 @@ namespace Loopback
 
         public class AppContainer
         {
-            IntPtr Prt { get; set; }
-            public String DisplayName { get; set; }
-            public String StringSid { get; set; }
+            public string DisplayName { get; set; }
+            public IntPtr Ponteiro { get; set; }
             public bool LoopUtil { get; set; }
 
-            internal AppContainer(string displayName, IntPtr sid, IEnumerable<string> sids)
+            internal AppContainer(string displayName, IntPtr ponteiro, IEnumerable<string> sids)
             {
                 DisplayName = displayName;
-                ConvertSidToStringSid(sid, out string tempSid);
-                StringSid = tempSid;
+                Ponteiro = ponteiro;
 
-                ConvertSidToStringSid(sid, out string right);
+                ConvertSidToStringSid(ponteiro, out string right);
                 LoopUtil = sids.Contains(right);
             }
         }
@@ -94,21 +88,27 @@ namespace Loopback
             Apps.Clear();
 
             NetworkIsolationEnumAppContainers(0x2, out uint size, out IntPtr arrayValue);
-            var fullList = Base<INET_FIREWALL_APP_CONTAINER>(size, arrayValue);
+            var fullList = Base<INET_FIREWALL_APP_CONTAINER, (string, IntPtr)>(size, arrayValue, x => (x.displayName, x.appContainerSid))
+                .Where(x => x.Item1[0] != '@' && !x.Item1.Contains("app.") && !x.Item1.Contains("microsoft."));
 
             NetworkIsolationGetAppContainerConfig(out size, out arrayValue);
-            var sids = Base<SID_AND_ATTRIBUTES>(size, arrayValue)
-                .Select(x => { ConvertSidToStringSid(x.Sid, out string left); return left; });
+            var sids = Base<SID_AND_ATTRIBUTES, string>(size, arrayValue, Converter);
 
-            Apps.AddRange(fullList.Select(PI_app => new AppContainer(PI_app.displayName, PI_app.appContainerSid, sids)));
+            Apps.AddRange(fullList.Select(PI_app => new AppContainer(PI_app.Item1, PI_app.Item2, sids)));
+
+            string Converter(SID_AND_ATTRIBUTES ponteiro)
+            {
+                ConvertSidToStringSid(ponteiro.Sid, out string left);
+                return left;
+            }
         }
 
-        IEnumerable<T> Base<T>(uint size, IntPtr arrayValue)
+        IEnumerable<Retorno> Base<T, Retorno>(uint size, IntPtr arrayValue, Func<T, Retorno> processamento)
         {
             var structSize = Marshal.SizeOf(typeof(T));
             for (var i = 0; i < size; i++, arrayValue += structSize)
             {
-                yield return Marshal.PtrToStructure<T>(arrayValue);
+                yield return processamento(Marshal.PtrToStructure<T>(arrayValue));
             }
         }
 
@@ -118,15 +118,9 @@ namespace Loopback
                 .Select(x => new SID_AND_ATTRIBUTES
                 {
                     Attributes = 0,
-                    Sid = Converter(x.StringSid)
+                    Sid = x.Ponteiro
                 }));
             return NetworkIsolationSetAppContainerConfig((uint)arr.Count, arr.ToArray()) == 0;
-
-            IntPtr Converter(string sid)
-            {
-                ConvertStringSidToSid(sid, out IntPtr ptr);
-                return ptr;
-            }
         }
     }
 }
