@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Data;
-using System.Windows.Input;
 
 namespace Loopback
 {
@@ -12,97 +9,41 @@ namespace Loopback
     /// </summary>
     public partial class MainWindow : Window
     {
-        private LoopUtil _loop;
-        private List<LoopUtil.AppContainer> appFiltered=new List<LoopUtil.AppContainer>();
-        private bool isDirty=false;
+        LoopUtil _loop;
+        ObservableCollection<LoopUtil.AppContainer> appFiltered;
 
         public MainWindow()
         {
             InitializeComponent();
             _loop = new LoopUtil();
-             dgLoopback.ItemsSource =appFiltered;
-             Filter(String.Empty,false);
-            ICollectionView cvApps = CollectionViewSource.GetDefaultView(dgLoopback.ItemsSource);
-
+            appFiltered = new ObservableCollection<LoopUtil.AppContainer>(_loop.Apps);
+            dgLoopback.ItemsSource = appFiltered;
         }
-        private void btnSave_Click(object sender, RoutedEventArgs e)
-        {
-            if (!isDirty) 
-            {
-                Log("nothing to save");
-                return; 
-            }
 
-            isDirty = false;
+        private void Salvar(object sender, RoutedEventArgs e)
+        {
             if (_loop.SaveLoopbackState())
-            { 
-                Log(" saved loopback excemptions");
+            {
+                Log("Modificações salvas sem nenhum problema.");
             }
             else
-            { Log(" ERROR SAVING"); }
+            {
+                Log("Erro desconhecido ao salvar");
+            }
         }
 
-        private void btnRefresh_Click(object sender, RoutedEventArgs e)
+        private void Atualizar(object sender, RoutedEventArgs e)
         {
             _loop.LoadApps();
-            Filter(String.Empty, false);
-            txtFilter.Text = "";
-            cbLoopback.IsChecked = false;
-            isDirty = false;
-            Log("refreshed");
-        }
-
-        private void Window_Closing(object sender, CancelEventArgs e)
-        {
-            if (isDirty)
-            {
-                MessageBoxResult resp= MessageBox.Show("You have not saved your changes. Are you sure you want to exit ?","Loopback Manager", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (resp==MessageBoxResult.No)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-            }
-        }
-
-        private void txtFilter_KeyUp(object sender, KeyEventArgs e)
-        {
-            Filter(txtFilter.Text, (bool)cbLoopback.IsChecked);
-        }
-
-        private void cbLoopback_Click(object sender, RoutedEventArgs e)
-        {
-            Filter(txtFilter.Text, (bool)cbLoopback.IsChecked);
-        }
-
-        private void Filter(string filter, bool enabled)
-        {
-            string right = filter.ToUpper();
             appFiltered.Clear();
-
-            foreach (LoopUtil.AppContainer app in _loop.Apps)
-            {
-                string left = app.DisplayName.ToUpper();
-
-                if (filter == String.Empty || left.Contains(right))
-                {
-                    if (enabled == false || app.LoopUtil == true)
-                    {
-                        appFiltered.Add(app);
-                    }
-                }
-            }
+            _loop.Apps.ForEach(appFiltered.Add);
             dgLoopback.Items.Refresh();
-        }
-
-        private void dgcbLoop_Click(object sender, RoutedEventArgs e)
-        {
-            isDirty=true;
+            Log("Lista atualizada com sucesso");
         }
 
         private void Log(String logtxt)
         {
-            txtStatus.Text = DateTime.Now.ToString("hh:mm:ss.fff ") + logtxt;
+            txtStatus.Text = DateTime.Now.ToString("hh:mm:ss ") + logtxt;
         }
     }
 }
