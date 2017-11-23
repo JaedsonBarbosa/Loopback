@@ -63,8 +63,6 @@ namespace Loopback
                     return;
                 }
             }
-            //To Do
-            _loop.FreeResources();
         }
 
         private void txtFilter_KeyUp(object sender, KeyEventArgs e)
